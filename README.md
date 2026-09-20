@@ -1,6 +1,6 @@
 # Human made README
 
-This tool was made because I had difficulty finding a free impeller design
+This tool was made because I had difficulty finding an impeller design
 tool that was both free and had a user friendly GUI. It is admittedly AI generated
 so there's a very real possibility nothing here is accurate in the slightest but I 
 figured it'd be worth a shot. Don't be irresponsible. Don't act as if exports are
