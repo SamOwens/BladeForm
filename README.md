@@ -36,8 +36,6 @@ Two pieces, sharing one set of physics:
 | **Engine** | `bladeform/` — Python package, and the only thing that writes STEP | Python 3.10+ |
 | **Helper** | `helper.py` + `start_bladeform.bat` — local server on 127.0.0.1 | Python 3.10+ |
 
-Read `STATUS.md` before trusting any number. It lists exactly what is verified,
-what is approximate, and what does not work.
 
 ---
 
@@ -240,9 +238,6 @@ judgement rather than published correlation say so.
 correlations, not CFD or test data. The plots, the CSV and the HTML report all
 say so. Use them to navigate the design space, not to predict a machine.
 
-Known limitations are in `STATUS.md`, including the skin-friction term reading
-low against literature (left at the published correlation rather than scaled to
-look right) and the fillet being a modelled blend rather than a kernel fillet.
 
 ---
 
@@ -262,5 +257,4 @@ bladeform/
   exporters.py     STL, project JSON, HTML report
 viewer/            viewer sources and the jsdom test
 tests/
-STATUS.md          verified / approximate / broken
 ```
