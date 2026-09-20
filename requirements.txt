@@ -1,0 +1,5 @@
+numpy>=1.24
+scipy>=1.10
+matplotlib>=3.7
+# STEP export only. Large download; everything else works without it.
+cadquery-ocp>=7.7

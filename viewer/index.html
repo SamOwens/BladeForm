@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BladeForm — parametric impeller design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#e8ecf1; --panel:#ffffff; --panel-2:#f4f6f9;
+  --line:#d2d9e2; --line-soft:#e4e9ef;
+  --text:#1c2531; --dim:#61728a; --faint:#8a9aae;
+  --port-a:#1b242f; --port-b:#0c1117;
+  --signal:#b06a00; --signal-br:#ffb020;
+  --good:#16775a; --good-br:#31c99a;
+  --warn:#9a5b00; --bad:#b5342a; --bad-br:#ff6a5e;
+  --blade:#4d7fb3; --split:#7aa6cf; --hub:#b9b2a4;
+  --focus:#2f6fb5;
+  --shadow:0 1px 2px rgba(20,32,48,.10), 0 6px 18px rgba(20,32,48,.06);
+  --r:5px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0f141a; --panel:#161d26; --panel-2:#1b232d;
+    --line:#2a3542; --line-soft:#222c37;
+    --text:#d3dbe4; --dim:#8b9aac; --faint:#6c7b8d;
+    --signal:#ffb020; --good:#31c99a; --warn:#e0a44a; --bad:#ff6a5e;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.28);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0f141a; --panel:#161d26; --panel-2:#1b232d;
+  --line:#2a3542; --line-soft:#222c37;
+  --text:#d3dbe4; --dim:#8b9aac; --faint:#6c7b8d;
+  --signal:#ffb020; --good:#31c99a; --warn:#e0a44a; --bad:#ff6a5e;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.28);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--paper); color:var(--text);
+  font:400 13px/1.45 "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing:antialiased; overflow:hidden;
+}
+.num{font-family:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric:tabular-nums}
+button,input,select{font:inherit; color:inherit}
+:focus-visible{outline:2px solid var(--focus); outline-offset:1px; border-radius:3px}
+
+/* ---------- shell ---------- */
+#app{display:grid; grid-template-rows:auto 1fr; height:100dvh}
+header{
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  padding:8px 14px; background:var(--panel); border-bottom:1px solid var(--line);
+}
+.brand{display:flex; align-items:baseline; gap:9px; margin-right:4px}
+.brand b{font-weight:600; font-size:15px; letter-spacing:-.01em}
+.brand span{color:var(--faint); font-size:11.5px}
+.spacer{flex:1}
+.hgroup{display:flex; align-items:center; gap:6px}
+.hgroup>label{color:var(--dim); font-size:11.5px}
+
+main{display:grid; grid-template-columns:288px minmax(0,1fr) 250px; gap:10px;
+     padding:10px; min-height:0; background:var(--paper)}
+.col{min-height:0; display:flex; flex-direction:column; gap:10px}
+.pane{background:var(--panel); border:1px solid var(--line); border-radius:var(--r);
+      box-shadow:var(--shadow); min-height:0; display:flex; flex-direction:column}
+.pane-head{display:flex; align-items:center; justify-content:space-between; gap:8px;
+           padding:7px 10px; border-bottom:1px solid var(--line-soft)}
+.pane-head h2{margin:0; font-size:12px; font-weight:600; letter-spacing:.005em}
+.pane-body{overflow:auto; padding:2px 0}
+.scroll{overflow:auto}
+
+/* ---------- controls ---------- */
+.btn{background:var(--panel-2); border:1px solid var(--line); border-radius:4px;
+     padding:4px 9px; cursor:pointer; font-size:12px; line-height:1.3}
+.btn:hover:not(:disabled){border-color:var(--faint)}
+.btn:disabled{opacity:.4; cursor:default}
+.btn.p{background:var(--text); color:var(--panel); border-color:var(--text)}
+.seg{display:inline-flex; border:1px solid var(--line); border-radius:4px; overflow:hidden}
+.seg button{background:var(--panel); border:0; padding:4px 9px; cursor:pointer; font-size:12px}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--text); color:var(--panel)}
+select.sel{background:var(--panel-2); border:1px solid var(--line); border-radius:4px;
+           padding:4px 7px; font-size:12px}
+
+/* ---------- parameter groups ---------- */
+.grp{border-bottom:1px solid var(--line-soft)}
+.grp>summary{list-style:none; cursor:pointer; padding:7px 10px; font-weight:500; font-size:12px;
+             display:flex; align-items:center; gap:7px; user-select:none}
+.grp>summary::-webkit-details-marker{display:none}
+.grp>summary::before{content:""; width:0; height:0; border:4px solid transparent;
+  border-left-color:var(--faint); transition:transform .12s; transform-origin:2px 4px}
+.grp[open]>summary::before{transform:rotate(90deg)}
+.grp>summary:hover{background:var(--panel-2)}
+.fields{padding:2px 10px 9px}
+
+.row{display:grid; grid-template-columns:1fr 74px 30px; align-items:center;
+     gap:6px; padding:2px 0; position:relative}
+.row>label{font-size:12px; color:var(--dim); cursor:help;
+           overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.row input[type=number]{width:100%; background:var(--panel-2); border:1px solid var(--line);
+  border-radius:3px; padding:3px 5px; font-size:12px; text-align:right}
+.row input[type=number]:focus{background:var(--panel); border-color:var(--focus)}
+.row .u{font-size:11px; color:var(--faint)}
+.row.bad input{border-color:var(--bad)}
+.row.warn input{border-color:var(--warn)}
+.row.derived input{background:transparent; border-color:transparent; color:var(--text); font-weight:500}
+.rng{grid-column:1/-1; width:100%; margin:1px 0 3px; accent-color:var(--focus); height:14px}
+.row select{width:100%; grid-column:2/-1; background:var(--panel-2);
+            border:1px solid var(--line); border-radius:3px; padding:3px 4px; font-size:11.5px}
+.chk{display:flex; align-items:center; gap:7px; padding:3px 0; font-size:12px; color:var(--dim)}
+.chk input{accent-color:var(--focus)}
+
+/* tooltip */
+.tip{position:absolute; z-index:40; left:0; top:100%; width:246px;
+     background:var(--text); color:var(--panel); padding:7px 9px; border-radius:4px;
+     font-size:11.5px; line-height:1.4; box-shadow:var(--shadow); pointer-events:none}
+.tip svg{display:block; margin:6px auto 0}
+
+/* ---------- viewport ---------- */
+.viewport{position:relative; flex:1; min-height:220px; border-radius:var(--r);
+  overflow:hidden; background:radial-gradient(120% 120% at 50% 25%, var(--port-a), var(--port-b))}
+.viewport canvas{display:block; width:100%; height:100%}
+.vp-tools{position:absolute; top:8px; right:8px; display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end}
+.vp-tools .btn{background:rgba(22,30,40,.82); border-color:rgba(255,255,255,.16); color:#dfe7f0}
+.vp-tools .btn[aria-pressed="true"]{background:var(--signal-br); color:#20160a; border-color:var(--signal-br)}
+.vp-tools input[type=color]{width:26px; height:24px; padding:0; border:1px solid rgba(255,255,255,.16);
+  border-radius:4px; background:rgba(22,30,40,.82); cursor:pointer}
+.vp-hint{position:absolute; left:10px; bottom:8px; color:#8fa2b6; font-size:11px; letter-spacing:.01em}
+.vp-legend{position:absolute; left:10px; top:8px; color:#c6d3e0; font-size:11px;
+  background:rgba(22,30,40,.8); padding:5px 7px; border-radius:4px; display:none}
+.vp-legend .bar{height:7px; width:118px; border-radius:2px; margin:4px 0 2px}
+.vp-legend .ends{display:flex; justify-content:space-between; font-size:10px; color:#9fb0c2}
+
+/* ---------- comparison bar ---------- */
+.cmp{padding:9px 12px 11px}
+.cmp-top{display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:6px}
+.cmp-top .lbl{font-size:12px; color:var(--dim)}
+.cmp-top .val{font-size:19px; font-weight:600; letter-spacing:-.01em}
+.cmp-top .val .unit{font-size:12px; font-weight:400; color:var(--dim); margin-left:3px}
+.track{position:relative; height:22px; background:var(--panel-2);
+       border:1px solid var(--line); border-radius:3px; overflow:hidden}
+.fill{position:absolute; inset:0 auto 0 0; width:0; transition:width .16s ease, background-color .16s}
+.target{position:absolute; top:-3px; bottom:-3px; width:2px; background:var(--text)}
+.target::after{content:attr(data-l); position:absolute; top:-15px; left:50%; transform:translateX(-50%);
+  font-size:10.5px; color:var(--dim); white-space:nowrap}
+.cmp-foot{display:flex; justify-content:space-between; margin-top:5px; font-size:11px; color:var(--faint)}
+
+/* ---------- derived readouts ---------- */
+.kv{display:grid; grid-template-columns:1fr auto auto; gap:2px 7px; padding:6px 10px 9px; align-items:baseline}
+.kv .k{font-size:11.5px; color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.kv .v{font-size:12.5px; font-weight:500; text-align:right}
+.kv .u{font-size:10.5px; color:var(--faint); min-width:34px}
+.kv .sep{grid-column:1/-1; height:1px; background:var(--line-soft); margin:5px 0}
+.kv .v.hot{color:var(--bad)} .kv .v.ok{color:var(--good)} .kv .v.warn{color:var(--warn)}
+
+/* ---------- issues ---------- */
+.issues{padding:4px 10px 9px; font-size:11.5px}
+.issue{display:flex; gap:6px; padding:4px 0; border-bottom:1px solid var(--line-soft); line-height:1.35}
+.issue:last-child{border-bottom:0}
+.issue .dot{flex:0 0 6px; width:6px; height:6px; border-radius:50%; margin-top:5px}
+.issue.error .dot{background:var(--bad)} .issue.warn .dot{background:var(--warn)}
+.issue.ok .dot{background:var(--good)}
+.issue b{font-weight:600}
+.issue.ok{color:var(--dim)}
+
+/* ---------- plots ---------- */
+.tabs{display:flex; gap:2px}
+.tabs button{background:transparent; border:0; border-bottom:2px solid transparent;
+  padding:4px 8px; cursor:pointer; font-size:12px; color:var(--dim)}
+.tabs button[aria-selected="true"]{color:var(--text); border-bottom-color:var(--signal)}
+.plot{padding:6px 10px 10px}
+.plot svg{display:block; width:100%; height:auto; max-height:236px}
+.plot .note{color:var(--faint); font-size:10.5px; margin-top:5px}
+
+/* ---------- snapshots ---------- */
+.snaps{display:flex; flex-wrap:wrap; gap:5px; padding:7px 10px 9px}
+.snap{display:flex; align-items:center; gap:4px; background:var(--panel-2);
+  border:1px solid var(--line); border-radius:11px; padding:2px 4px 2px 5px; font-size:11.5px}
+.snap button{background:transparent; border:0; cursor:pointer; color:var(--faint);
+  padding:0 3px; font-size:13px; line-height:1}
+.snap button:hover{color:var(--bad)}
+.snap .name{cursor:text; outline:none; padding:0 1px; border-radius:2px}
+.snap .name:focus{background:var(--panel); box-shadow:0 0 0 1px var(--focus)}
+.snap .restore{cursor:pointer; color:var(--dim); font-size:12px}
+.snap input[type=checkbox]{accent-color:var(--focus); margin:0 1px 0 2px}
+.snap.sel{border-color:var(--focus); box-shadow:0 0 0 1px var(--focus)}
+.difftab{width:100%; border-collapse:collapse; font-size:11.5px; margin-top:8px}
+.difftab th{text-align:left; font-weight:600; padding:4px 6px; border-bottom:1px solid var(--line); font-size:11px}
+.difftab td{padding:3px 6px; border-bottom:1px solid var(--line-soft)}
+.difftab td.n{text-align:right; font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums}
+.difftab td.d{text-align:right; color:var(--dim)}
+.difftab td.d.up{color:var(--good)} .difftab td.d.dn{color:var(--bad)}
+.snap .restore:hover{color:var(--focus)}
+.empty{color:var(--faint); font-size:11.5px; padding:7px 10px 9px}
+
+/* ---------- validation badge ---------- */
+#selftest{font-size:11px; padding:2px 7px; border-radius:10px; border:1px solid var(--line);
+  color:var(--dim); cursor:help; background:var(--panel-2)}
+#selftest.pass{color:var(--good); border-color:color-mix(in srgb, var(--good) 40%, var(--line))}
+#selftest.fail{color:var(--bad); border-color:var(--bad)}
+
+/* ---------- export sheet ---------- */
+dialog{border:1px solid var(--line); border-radius:7px; background:var(--panel); color:var(--text);
+  box-shadow:0 12px 44px rgba(10,20,32,.3); padding:0; max-width:460px; width:calc(100% - 28px)}
+dialog::backdrop{background:rgba(12,18,26,.44)}
+.dlg-h{display:flex; justify-content:space-between; align-items:center;
+  padding:10px 13px; border-bottom:1px solid var(--line-soft)}
+.dlg-h h3{margin:0; font-size:13px; font-weight:600}
+.dlg-b{padding:11px 13px 13px}
+.opt{display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px solid var(--line-soft)}
+.opt:last-of-type{border-bottom:0}
+.opt .txt{flex:1}
+.opt .txt b{display:block; font-size:12.5px; font-weight:600}
+.opt .txt span{font-size:11.5px; color:var(--dim)}
+.callout{background:var(--panel-2); border-left:2px solid var(--signal);
+  padding:8px 10px; border-radius:0 4px 4px 0; font-size:11.5px; color:var(--dim); margin-top:10px}
+
+@media (max-width:1180px){
+  main{grid-template-columns:262px minmax(0,1fr); grid-template-rows:1fr auto}
+  .col.right{grid-column:1/-1; flex-direction:row; flex-wrap:wrap}
+  .col.right .pane{flex:1 1 260px}
+}
+@media (max-width:820px){
+  body{overflow:auto}
+  #app{height:auto}
+  main{grid-template-columns:1fr}
+  .col.left,.col.right{grid-column:1}
+  .viewport{height:52vh}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand"><b>BladeForm</b><span>parametric impeller design</span></div>
+
+    <div class="hgroup">
+      <label for="preset">Machine</label>
+      <select id="preset" class="sel"></select>
+    </div>
+
+    <div class="hgroup">
+      <label for="fluid">Fluid</label>
+      <select id="fluid" class="sel">
+        <option value="air">Air</option>
+        <option value="water">Water</option>
+        <option value="custom">Custom…</option>
+      </select>
+    </div>
+
+    <div class="hgroup">
+      <label>Units</label>
+      <div class="seg" id="units" role="group">
+        <button data-u="SI" aria-pressed="true">SI</button>
+        <button data-u="Imperial" aria-pressed="false">Imperial</button>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+
+    <span id="selftest" title="Checking the browser engine against reference values computed by the Python engine">engine check…</span>
+    <div class="hgroup">
+      <button class="btn" id="undo" title="Undo (Ctrl+Z)" disabled>Undo</button>
+      <button class="btn" id="redo" title="Redo (Ctrl+Shift+Z)" disabled>Redo</button>
+      <button class="btn" id="snap">Save snapshot</button>
+      <button class="btn" id="openBtn">Open</button>
+      <input type="file" id="openFile" accept=".bfproj,.json,application/json" hidden>
+      <button class="btn p" id="exportBtn">Export</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ---------------- parameters ---------------- -->
+    <div class="col left">
+      <section class="pane" style="flex:1">
+        <div class="pane-head">
+          <h2>Parameters</h2>
+          <button class="btn" id="resetPreset" title="Return every value to the preset">Reset</button>
+        </div>
+        <div class="pane-body scroll" id="params"></div>
+      </section>
+    </div>
+
+    <!-- ---------------- centre ---------------- -->
+    <div class="col">
+      <section class="pane" style="flex:1.25; min-height:250px">
+        <div class="viewport" id="viewport">
+          <div class="vp-legend" id="legend">
+            <div id="legendTitle">Blade angle β</div>
+            <div class="bar" id="legendBar"></div>
+            <div class="ends"><span id="legendLo"></span><span id="legendHi"></span></div>
+          </div>
+          <div class="vp-tools">
+            <div class="seg" id="shade" role="group">
+              <button data-s="solid" aria-pressed="true">Solid</button>
+              <button data-s="wire" aria-pressed="false">Wireframe</button>
+              <button data-s="load" aria-pressed="false">Loading</button>
+            </div>
+            <button class="btn" id="tglDiff" aria-pressed="false">Diffuser</button>
+            <button class="btn" id="tglVol" aria-pressed="false">Volute</button>
+            <input type="color" id="colSurf" value="#4d7fb3" title="Impeller colour">
+            <input type="color" id="colBg" value="#141b24" title="Background colour">
+            <button class="btn" id="fit" title="Frame the impeller">Fit</button>
+          </div>
+          <div class="vp-hint">Drag to orbit · scroll to zoom · right-drag to pan</div>
+        </div>
+      </section>
+
+      <section class="pane">
+        <div class="cmp">
+          <div class="cmp-top">
+            <span class="lbl" id="cmpLabel">Pressure ratio</span>
+            <span class="val num"><span id="cmpVal">—</span><span class="unit" id="cmpUnit"></span></span>
+          </div>
+          <div class="track" id="track">
+            <div class="fill" id="fill"></div>
+            <div class="target" id="targetMark" data-l="target"></div>
+          </div>
+          <div class="cmp-foot"><span id="cmpFoot"></span><span id="cmpDelta"></span></div>
+        </div>
+      </section>
+
+      <section class="pane" style="flex:1; min-height:170px">
+        <div class="pane-head">
+          <div class="tabs" id="tabs" role="tablist">
+            <button role="tab" data-t="merid" aria-selected="true">Meridional</button>
+            <button role="tab" data-t="map" aria-selected="false">Performance map</button>
+            <button role="tab" data-t="beta" aria-selected="false">Blade angle</button>
+            <button role="tab" data-t="compare" aria-selected="false">Compare</button>
+          </div>
+          <button class="btn" id="dlPlot">Download SVG</button>
+        </div>
+        <div class="pane-body scroll plot" id="plot"></div>
+      </section>
+    </div>
+
+    <!-- ---------------- derived ---------------- -->
+    <div class="col right">
+      <section class="pane" style="flex:1">
+        <div class="pane-head"><h2>Derived</h2><span style="font-size:10.5px;color:var(--faint)">estimates</span></div>
+        <div class="pane-body scroll"><div class="kv" id="derived"></div></div>
+      </section>
+      <section class="pane">
+        <div class="pane-head"><h2>Checks</h2></div>
+        <div class="pane-body scroll" style="max-height:190px"><div class="issues" id="issues"></div></div>
+      </section>
+      <section class="pane">
+        <div class="pane-head"><h2>Snapshots</h2>
+          <span style="display:flex;gap:5px"><span id="cmpHint" style="font-size:10.5px;color:var(--faint);align-self:center"></span>
+          <button class="btn" id="clearSnaps">Clear</button></span></div>
+        <div class="pane-body" id="snaps"></div>
+        <div class="pane-head" style="border-top:1px solid var(--line-soft);border-bottom:0">
+          <h2 style="font-weight:500;color:var(--dim)">Recent</h2></div>
+        <div class="pane-body" id="recents"></div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<dialog id="exportDlg">
+  <div class="dlg-h"><h3>Export</h3><button class="btn" id="closeDlg">Close</button></div>
+  <div class="dlg-b">
+    <div class="opt" style="flex-direction:column;align-items:stretch;gap:6px">
+      <div class="txt"><b>Design name</b><span>Used for project and STEP filenames. Required for those two exports.</span></div>
+      <input type="text" id="exportName" class="num" placeholder="e.g. turbocharger_v2" autocomplete="off"
+             style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel-2)">
+    </div>
+    <div class="opt">
+      <div class="txt"><b>Project file (.bfproj)</b><span>Every parameter, plus your snapshots. Saved into the projects folder when the local helper is running; otherwise a normal browser download.</span></div>
+      <button class="btn" data-x="proj">Save / Download</button>
+    </div>
+    <div class="opt">
+      <div class="txt"><b>Mesh (.stl)</b><span>The preview tessellation, for printing or meshing. Triangle count follows the viewport detail setting.</span></div>
+      <button class="btn" data-x="stl">Download</button>
+    </div>
+    <div class="opt">
+      <div class="txt"><b>Performance map (.csv)</b><span>Every swept point: speed, flow, pressure ratio, efficiency.</span></div>
+      <button class="btn" data-x="csv">Download</button>
+    </div>
+    <div class="opt">
+      <div class="txt"><b>Solid model (.step)</b><span>Builds real B-rep solids via the local helper (OpenCASCADE). Writes to the steps folder after verification.</span></div>
+      <button class="btn" data-x="step">Export STEP</button>
+    </div>
+    <div class="callout" id="stepNote"></div>
+    <div class="callout" id="exportStatus" style="display:none"></div>
+  </div>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>/*ENGINE*/</script>
+<script>/*UI*/</script>
+</body>
+</html>
