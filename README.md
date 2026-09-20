@@ -16,7 +16,7 @@ After unzipping you're gonna need to
 6. Export to steps folder
 
 I hope this can be of use to somebody, a more detailed (but less personal)
-README sits below. You've got BladeForm, all is right with the world 😎
+README sits below. You've got BladeForm, all is right with the world. 😎😎😎
 
 
 
