@@ -1,3 +1,25 @@
+# Human made README
+
+This tool was made because I had difficulty finding a free impeller design
+tool that was both free and had a user friendly GUI. It is admittedly AI generated
+so there's a very real possibility nothing here is accurate in the slightest but I 
+figured it'd be worth a shot. Don't be irresponsible. Don't act as if exports are
+100% accurate, this is for mean-line at best.
+
+After unzipping you're gonna need to
+1. Open a terminal in the folder containing start_bladeform.bat 
+2. Run pip install -r requirements.txt
+3. Run pip install cadquery-ocp
+4. Double click start_bladeform.bat 
+(or run python helper.py and open http://127.0.0.1:8765/ in a browser)
+5. Design your impeller
+6. Export to steps folder
+
+I hope this can be of use to somebody, a more detailed (but less personal)
+README sits below. You've got BladeForm, all is right with the world.
+
+
+
 # BladeForm
 
 Parametric design tool for turbomachinery impellers — centrifugal compressors,
