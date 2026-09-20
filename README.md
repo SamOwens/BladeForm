@@ -4,7 +4,7 @@ This tool was made because I had difficulty finding a free impeller design
 tool that was both free and had a user friendly GUI. It is admittedly AI generated
 so there's a very real possibility nothing here is accurate in the slightest but I 
 figured it'd be worth a shot. Don't be irresponsible. Don't act as if exports are
-100% accurate, this is for mean-line at best.
+100% accurate, this is for mean-line at best. Also this is meant for Windows.
 
 After unzipping you're gonna need to
 1. Open a terminal in the folder containing start_bladeform.bat 
